@@ -23,6 +23,7 @@ public static class SecretConfigurationExtensions
     public static IConfigurationBuilder AddKmsEncryptedSecretFile(
         this IConfigurationBuilder builder,
         AmazonKeyManagementServiceClient kmsClient,
+        string kmsKeyId,
         Action<ConfigurationBuilder> configureEncryptedSource)
     {
         ConfigurationBuilder encryptedSourceBuilder = new();
@@ -38,7 +39,8 @@ public static class SecretConfigurationExtensions
             new KmsSecretConfigurationSource()
             {
                 EncryptedConfigurationProvider = configurationProvider,
-                KmsClient = kmsClient
+                KmsClient = kmsClient,
+                KmsKeyId = kmsKeyId
             });
     }
 }

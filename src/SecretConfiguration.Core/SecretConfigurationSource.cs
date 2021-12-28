@@ -22,12 +22,10 @@ public class SecretConfigurationSource : IConfigurationSource
 {
     public IConfigurationProvider EncryptedConfigurationProvider { get; set; } = null!;
 
-    public Func<IDictionary<string, string>, string> Decrypt { get; set; } = null!;
-
-    public string EncryptedRootKey { get; set; } = "value";
+    public Func<string, string> Decrypt { get; set; } = null!;
 
     public IConfigurationProvider Build(IConfigurationBuilder builder)
     {
-        return new SecretConfigurationProvider(EncryptedConfigurationProvider, EncryptedRootKey, Decrypt);
+        return new SecretConfigurationProvider(EncryptedConfigurationProvider, Decrypt);
     }
 }

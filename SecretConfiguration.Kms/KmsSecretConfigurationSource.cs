@@ -14,9 +14,8 @@
 
 namespace SecretConfiguration.Kms;
 
-using System.Collections.Generic;
+using System;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 using Amazon.KeyManagementService;
 using Amazon.KeyManagementService.Model;
@@ -25,38 +24,35 @@ using SecretConfiguration.Core;
 
 public class KmsSecretConfigurationSource : IConfigurationSource
 {
-    public IConfigurationProvider EncryptedConfigurationProvider { get; set; } = null!;
+    public IConfigurationProvider EncryptedConfigurationProvider { get; init; } = null!;
 
-    public string EncryptedRootKey { get; set; } = "value";
+    public AmazonKeyManagementServiceClient KmsClient { get; init; } = null!;
 
-    public AmazonKeyManagementServiceClient KmsClient { get; set; } = null!;
+    public string KmsKeyId { get; init; } = null!;
 
     public IConfigurationProvider Build(IConfigurationBuilder builder)
     {
-        SecretConfigurationSource configurationSource = new SecretConfigurationSource()
+        SecretConfigurationSource configurationSource = new()
         {
             EncryptedConfigurationProvider = EncryptedConfigurationProvider,
-            EncryptedRootKey = EncryptedRootKey,
             Decrypt = properties => KmsDecrypt(properties).ConfigureAwait(false).GetAwaiter().GetResult()
         };
 
         return configurationSource.Build(builder);
     }
 
-    private async Task<string> KmsDecrypt(IDictionary<string, string> properties)
+    private async Task<string> KmsDecrypt(string ciphertext)
     {
-        string keyId = properties["KeyId"];
-
-        using MemoryStream ciphertextBlob = new(Encoding.UTF8.GetBytes(properties["Ciphertext"]));
+        using MemoryStream ciphertextBlob = new(Convert.FromBase64String(ciphertext));
 
         DecryptRequest decryptRequest = new()
         {
             CiphertextBlob = ciphertextBlob,
-            KeyId = keyId
+            KeyId = KmsKeyId
         };
 
-        using MemoryStream plainText = (await KmsClient.DecryptAsync(decryptRequest)).Plaintext;
-
-        return Encoding.UTF8.GetString(plainText.GetBuffer());
+        DecryptResponse plainText = await KmsClient.DecryptAsync(decryptRequest);
+        using StreamReader reader = new(plainText.Plaintext);
+        return await reader.ReadToEndAsync();
     }
 }

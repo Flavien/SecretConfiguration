@@ -22,16 +22,13 @@ using Microsoft.Extensions.Configuration;
 public class SecretConfigurationProvider : ConfigurationProvider
 {
     private readonly IConfigurationProvider _encryptedConfigurationProvider;
-    private readonly Func<IDictionary<string, string>, string> _decrypt;
-    private readonly string _encryptedRootKey;
+    private readonly Func<string, string> _decrypt;
 
     public SecretConfigurationProvider(
         IConfigurationProvider encryptedConfigurationProvider,
-        string encryptedRootKey,
-        Func<IDictionary<string, string>, string> decrypt)
+        Func<string, string> decrypt)
     {
         _encryptedConfigurationProvider = encryptedConfigurationProvider;
-        _encryptedRootKey = encryptedRootKey;
         _decrypt = decrypt;
 
         encryptedConfigurationProvider.GetReloadToken().RegisterChangeCallback(_ => Load(), null);
@@ -41,35 +38,21 @@ public class SecretConfigurationProvider : ConfigurationProvider
     {
         _encryptedConfigurationProvider.Load();
 
-        Data.Clear();
-        DecryptValues(null);
+        Dictionary<string, string> data = new(StringComparer.OrdinalIgnoreCase);
+        DecryptValues(null, data);
+        Data = data;
     }
 
-    private void DecryptValues(string? prefix)
+    private void DecryptValues(string? prefix, IDictionary<string, string> data)
     {
         foreach (string key in _encryptedConfigurationProvider.GetChildKeys(Enumerable.Empty<string>(), prefix))
         {
             string surrogateKey = prefix == null ? key : ConfigurationPath.Combine(prefix, key);
-            if (key.Equals(_encryptedRootKey, StringComparison.OrdinalIgnoreCase))
-            {
-                IDictionary<string, string> properties = new Dictionary<string, string>();
-                IEnumerable<string> childKeys = _encryptedConfigurationProvider.GetChildKeys(
-                    Enumerable.Empty<string>(),
-                    surrogateKey);
 
-                foreach (string propertyKey in childKeys)
-                {
-                    string propertySurrogateKey = ConfigurationPath.Combine(surrogateKey, propertyKey);
-                    if (_encryptedConfigurationProvider.TryGet(propertySurrogateKey, out string value))
-                        properties[propertyKey] = value;
-                }
-
-                base.Set(prefix, _decrypt(properties));
-            }
+            if (_encryptedConfigurationProvider.TryGet(surrogateKey, out string value))
+                data.Add(surrogateKey, _decrypt(value));
             else
-            {
-                DecryptValues(surrogateKey);
-            }
+                DecryptValues(surrogateKey, data);
         }
     }
 
