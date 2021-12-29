@@ -1,16 +1,22 @@
 # SecretConfiguration.Kms
 
-`SecretConfiguration.Kms` is a configuration provider compatible with the `Microsoft.Extensions.Configuration` package, that facilitates the storage of secrets in encrypted form in configuration files.
+[![SecretConfiguration.Kms](https://img.shields.io/nuget/v/SecretConfiguration.Kms.svg?style=flat-square&color=blue&logo=nuget)](https://www.nuget.org/packages/SecretConfiguration.Kms/)
 
-Encryption and decryption is performed using AWS Key Management Service.
+`SecretConfiguration.Kms` is a third-party configuration provider compatible with the `Microsoft.Extensions.Configuration` package. It facilitates the storage of secrets in encrypted form in configuration files.
+
+Encryption and decryption is performed using [AWS Key Management Service](https://aws.amazon.com/kms/).
 
 ## Why use this?
 
-Some solutions 
+Application configuration, including secrets, are sometimes managed externally from outside the application, with solutions such as Hashicorp Vault or AWS Systems Manager Parameter Store.
 
-Storing configuration in source control along with the code that uses them allows configuration and code to be versioned together.
+The drawback of this approach is that the set of settings required by an application evolve as new versions of the application are released. This means a separate version control system has to be introduced, on top of the version control system already used for the application source code. This also increases the potential for error as two closely related systems have to be kept in sync at all times.
 
-Since secrets may never be stored in clear text, this solution makes it possible to store secrets in a repository without compromising their security.
+Storing configuration in source control along with the code that relies on it allows configuration and code to be versioned together.
+
+However, secrets may never be stored in clear text. The `SecretConfiguration.Kms` package makes it possible to store secrets in a repository in encrypted form, and decrypts them transparently at runtime.
+
+The cryptographic material is managed by AWS through the KMS service. Encryption and decryption of secrets is managed by this service.
 
 ## Setup
 
@@ -18,17 +24,19 @@ Since secrets may never be stored in clear text, this solution makes it possible
 
 First create a key on AWS KMS, either using the [console](https://eu-west-1.console.aws.amazon.com/kms/home), or the command line.
 
-It is recommended to use symmetric encryption as this will allow you to encrypt values of up to 4kb with the default key spec.
+It is recommended to use symmetric encryption as this will allow to encrypt values of up to 4kb with the default key spec.
 
 Take note of the KMS ARN once the key is created, for example: `arn:aws:kms:eu-west-1:123456789:key/11111111-0000-0000-0000-000000000000`.
 
 ### Encrypt a secret
 
-Use the following command from the AWS CLI to create the ciphertext for the secret:
+Use the following command from the [AWS CLI](https://aws.amazon.com/cli/) to create the ciphertext for the secret:
 
 ```bash
 aws kms encrypt --cli-binary-format raw-in-base64-out --key-id "11111111-0000-0000-0000-000000000000" --plaintext "SECRET_TO_ENCRYPT"
 ```
+
+The `key-id` parameter should be replaced by the actual KMS key ID obtained in the previous step.
 
 The output will look like:
 
@@ -68,11 +76,19 @@ builder.Configuration
         encryptedSource => encryptedSource
             .SetBasePath(builder.Environment.ContentRootPath)
             .AddJsonFile("secrets.json"));
-````
+```
+
+This allows the encrypted configuration file (`secrets.json`) to be decrypted during startup using the KMS service. The decrypted configuration settings are then merged with the rest of the configuration obtained from other sources (such as command line, environment variables, or clear text JSON configuration files).
 
 ### Use encrypted configuration settings
 
+The configuration keys provided through the `KmsSecretConfigurationSource` are now available in their decrypted form throughout the application:
 
+```csharp
+IConfiguration configuration;
+
+string databasePassword = configuration["Database:Password"];
+```
 
 ## License
 
