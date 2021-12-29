@@ -15,7 +15,6 @@
 namespace SecretConfiguration.Core;
 
 using System;
-using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 
 public class SecretConfigurationSource : IConfigurationSource
