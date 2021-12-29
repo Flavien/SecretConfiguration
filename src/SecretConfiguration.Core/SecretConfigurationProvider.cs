@@ -36,7 +36,7 @@ public class SecretConfigurationProvider : ConfigurationProvider, IDisposable
 
         _disposable = ChangeToken.OnChange(
             () => encryptedConfigurationProvider.GetReloadToken(),
-            () => DecryptSource().GetAwaiter().GetResult());
+            async () => await DecryptSource());
     }
 
     public override void Load()
@@ -55,7 +55,11 @@ public class SecretConfigurationProvider : ConfigurationProvider, IDisposable
 
     private async Task DecryptValues(string? prefix, IDictionary<string, string> data)
     {
-        foreach (string key in _encryptedConfigurationProvider.GetChildKeys(Enumerable.Empty<string>(), prefix))
+        IEnumerable<string> childKeys = _encryptedConfigurationProvider
+            .GetChildKeys(Enumerable.Empty<string>(), prefix)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string key in childKeys)
         {
             string surrogateKey = prefix == null ? key : ConfigurationPath.Combine(prefix, key);
 
