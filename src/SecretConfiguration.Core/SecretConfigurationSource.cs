@@ -15,13 +15,14 @@
 namespace SecretConfiguration.Core;
 
 using System;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 
 public class SecretConfigurationSource : IConfigurationSource
 {
     public IConfigurationProvider EncryptedConfigurationProvider { get; set; } = null!;
 
-    public Func<string, string> Decrypt { get; set; } = null!;
+    public Func<string, Task<string>> Decrypt { get; set; } = null!;
 
     public IConfigurationProvider Build(IConfigurationBuilder builder)
     {

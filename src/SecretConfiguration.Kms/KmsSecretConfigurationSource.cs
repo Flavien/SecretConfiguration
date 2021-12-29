@@ -24,34 +24,40 @@ using SecretConfiguration.Core;
 
 public class KmsSecretConfigurationSource : IConfigurationSource
 {
-    public IConfigurationProvider EncryptedConfigurationProvider { get; init; } = null!;
+    public IConfigurationProvider EncryptedConfigurationProvider { get; set; } = null!;
 
-    public AmazonKeyManagementServiceClient KmsClient { get; init; } = null!;
+    public AmazonKeyManagementServiceClient KmsClient { get; set; } = null!;
 
-    public string KmsKeyId { get; init; } = null!;
+    public string KmsKeyId { get; set; } = null!;
 
     public IConfigurationProvider Build(IConfigurationBuilder builder)
     {
+        AmazonKeyManagementServiceClient kmsClient = KmsClient;
+        string kmsKeyId = KmsKeyId;
+
         SecretConfigurationSource configurationSource = new()
         {
             EncryptedConfigurationProvider = EncryptedConfigurationProvider,
-            Decrypt = properties => KmsDecrypt(properties).ConfigureAwait(false).GetAwaiter().GetResult()
+            Decrypt = ciphertext => KmsDecrypt(kmsClient, kmsKeyId, ciphertext),
         };
 
         return configurationSource.Build(builder);
     }
 
-    private async Task<string> KmsDecrypt(string ciphertext)
+    private static async Task<string> KmsDecrypt(
+        AmazonKeyManagementServiceClient kmsClient,
+        string kmsKeyId,
+        string ciphertext)
     {
         using MemoryStream ciphertextBlob = new(Convert.FromBase64String(ciphertext));
 
         DecryptRequest decryptRequest = new()
         {
             CiphertextBlob = ciphertextBlob,
-            KeyId = KmsKeyId
+            KeyId = kmsKeyId
         };
 
-        DecryptResponse plainText = await KmsClient.DecryptAsync(decryptRequest);
+        DecryptResponse plainText = await kmsClient.DecryptAsync(decryptRequest);
         using StreamReader reader = new(plainText.Plaintext);
         return await reader.ReadToEndAsync();
     }
