@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace SecretConfiguration.Kms;
+namespace SecretConfiguration.AwsKms;
 
 using System;
 using System.IO;
@@ -22,7 +22,7 @@ using Amazon.KeyManagementService.Model;
 using Microsoft.Extensions.Configuration;
 using SecretConfiguration.Core;
 
-public class KmsSecretConfigurationSource : IConfigurationSource
+public class AwsKmsSecretConfigurationSource : IConfigurationSource
 {
     public IConfigurationProvider EncryptedConfigurationProvider { get; set; } = null!;
 

@@ -1,8 +1,8 @@
-# SecretConfiguration.Kms
+# SecretConfiguration.AwsKms
 
-[![SecretConfiguration.Kms](https://img.shields.io/nuget/v/SecretConfiguration.Kms.svg?style=flat-square&color=blue&logo=nuget)](https://www.nuget.org/packages/SecretConfiguration.Kms/)
+[![SecretConfiguration.AwsKms](https://img.shields.io/nuget/v/SecretConfiguration.AwsKms.svg?style=flat-square&color=blue&logo=nuget)](https://www.nuget.org/packages/SecretConfiguration.AwsKms/)
 
-`SecretConfiguration.Kms` is a third-party configuration provider compatible with the `Microsoft.Extensions.Configuration` package. It facilitates the storage of secrets in encrypted form in configuration files.
+`SecretConfiguration.AwsKms` is a third-party configuration provider compatible with the `Microsoft.Extensions.Configuration` package. It facilitates the storage of secrets in encrypted form in configuration files.
 
 Encryption and decryption is performed using [AWS Key Management Service](https://aws.amazon.com/kms/).
 
@@ -14,7 +14,7 @@ The drawback of this approach is that the set of settings required by an applica
 
 Storing configuration in source control along with the code that relies on it allows configuration and code to be versioned together.
 
-However, secrets may never be stored in clear text. The `SecretConfiguration.Kms` package makes it possible to store secrets in a repository in encrypted form, and decrypts them transparently at runtime.
+However, secrets may never be stored in clear text. The `SecretConfiguration.AwsKms` package makes it possible to store secrets in a repository in encrypted form, and decrypts them transparently at runtime.
 
 The cryptographic material is managed by AWS through the KMS service. Encryption and decryption of secrets is managed by this service.
 
@@ -69,13 +69,12 @@ Replace the value with the ciphertext value obtained in the previous step.
 ```csharp
 string keyId = "arn:aws:kms:eu-west-1:123456789:key/11111111-0000-0000-0000-000000000000";
 
-builder.Configuration
-    .AddKmsEncryptedSecretFile(
-        new AmazonKeyManagementServiceClient(),
-        keyId,
-        encryptedSource => encryptedSource
-            .SetBasePath(builder.Environment.ContentRootPath)
-            .AddJsonFile("secrets.json"));
+builder.Configuration.AddAwsKmsEncryptedConfiguration(
+  new AmazonKeyManagementServiceClient(),
+  keyId,
+  encryptedSource => encryptedSource
+    .SetBasePath(builder.Environment.ContentRootPath)
+    .AddJsonFile("secrets.json"));
 ```
 
 This allows the encrypted configuration file (`secrets.json`) to be decrypted during startup using the KMS service. The decrypted configuration settings are then merged with the rest of the configuration obtained from other sources (such as command line, environment variables, or clear text JSON configuration files).

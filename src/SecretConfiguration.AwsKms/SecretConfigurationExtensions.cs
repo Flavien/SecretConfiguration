@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace SecretConfiguration.Kms;
+namespace SecretConfiguration.AwsKms;
 
 using System;
 using Amazon.KeyManagementService;
@@ -20,7 +20,7 @@ using Microsoft.Extensions.Configuration;
 
 public static class SecretConfigurationExtensions
 {
-    public static IConfigurationBuilder AddKmsEncryptedSecretFile(
+    public static IConfigurationBuilder AddAwsKmsEncryptedConfiguration(
         this IConfigurationBuilder builder,
         AmazonKeyManagementServiceClient kmsClient,
         string kmsKeyId,
@@ -36,7 +36,7 @@ public static class SecretConfigurationExtensions
             });
 
         return builder.Add(
-            new KmsSecretConfigurationSource()
+            new AwsKmsSecretConfigurationSource()
             {
                 EncryptedConfigurationProvider = configurationProvider,
                 KmsClient = kmsClient,
